@@ -1,0 +1,21 @@
+{
+  "name": "entertainment-discovery-rebellion",
+  "version": "1.0.0",
+  "description": "AI-powered conversational media advisor for Entertainment Discovery Rebellion - TasteRay Hackathon",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "memory": "npx -y @modelcontextprotocol/server-memory",
+    "serve-viz": "node serve-visualization.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "express": "^4.18.2",
+    "dotenv": "^16.0.0",
+    "axios": "^1.6.0"
+  },
+  "keywords": ["mcp", "ai", "entertainment", "discovery", "hackathon", "streaming"],
+  "author": "Entertainment Discovery Rebellion Team"
+}

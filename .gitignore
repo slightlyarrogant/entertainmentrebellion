@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Memory data (development only)
+memory-data.json
+memory-data-backup.json
+*.json.backup
+
+# Logs
+logs
+*.log
+
+# Runtime directories
+tmp/
+temp/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Analysis reports (generated)
+broken-relations-report.json
+orphaned-nodes-report.json
+*-report.json
+
+# API keys and secrets (extra safety)
+*.key
+*.pem
+config.json
+secrets.json

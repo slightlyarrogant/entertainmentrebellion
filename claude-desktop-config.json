@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "entertainment-discovery": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "cwd": "/home/bogdan/Desktop/AI-hackathon/entertainment-discovery-rebellion",
+      "env": {
+        "WATCHMODE_API_KEY": "YOUR_WATCHMODE_API_KEY_HERE",
+        "TMDB_API_KEY": "YOUR_TMDB_API_KEY_HERE"
+      }
+    }
+  }
+}

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Graph Visualization - Entertainment Discovery Rebellion</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        
+        #controls {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-width: 300px;
+        }
+        
+        #controls h3 {
+            margin: 0 0 15px 0;
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #aaa;
+        }
+        
+        input[type="text"], select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 12px;
+        }
+        
+        button {
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin: 2px;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background: #3a3a3a;
+            border-color: #666;
+        }
+        
+        button.active {
+            background: #4a4a4a;
+            border-color: #888;
+        }
+        
+        #stats {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+        
+        #details {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 350px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            display: none;
+        }
+        
+        #details h3 {
+            margin: 0 0 10px 0;
+            color: #fff;
+            font-size: 16px;
+        }
+        
+        #details .entity-type {
+            color: #888;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
+        
+        #details .observations {
+            margin-top: 15px;
+        }
+        
+        #details .observations h4 {
+            margin: 0 0 8px 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        #details .observation {
+            background: #1a1a1a;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        #details .relations {
+            margin-top: 15px;
+        }
+        
+        #details .relations h4 {
+            margin: 0 0 8px 0;
+            color: #aaa;
+            font-size: 14px;
+        }
+        
+        #details .relation {
+            background: #1a1a1a;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        #details .relation:hover {
+            background: #2a2a2a;
+        }
+        
+        .node {
+            cursor: pointer;
+            stroke-width: 2px;
+            transition: all 0.3s;
+        }
+        
+        .node:hover {
+            stroke-width: 4px;
+        }
+        
+        .node.orphaned {
+            stroke: #ff6b6b;
+            stroke-dasharray: 5,5;
+        }
+        
+        .node.project-related {
+            stroke: #ffd700;
+            stroke-width: 3px;
+        }
+        
+        .node.selected {
+            stroke: #00ff00;
+            stroke-width: 4px;
+        }
+        
+        .link {
+            fill: none;
+            stroke: #444;
+            stroke-width: 1;
+            opacity: 0.6;
+        }
+        
+        .link.highlighted {
+            stroke: #00ff00;
+            stroke-width: 3;
+            opacity: 1;
+        }
+        
+        .node-label {
+            font-size: 10px;
+            fill: #aaa;
+            pointer-events: none;
+            text-anchor: middle;
+        }
+        
+        .node-label.important {
+            font-size: 12px;
+            fill: #fff;
+            font-weight: bold;
+        }
+        
+        #tooltip {
+            position: absolute;
+            background: rgba(30, 30, 30, 0.95);
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            display: none;
+            border: 1px solid #444;
+            max-width: 300px;
+        }
+        
+        .legend {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(20, 20, 20, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h3>Memory Graph Controls</h3>
+        
+        <div class="control-group">
+            <label>Search Entities</label>
+            <input type="text" id="search" placeholder="Type to search...">
+        </div>
+        
+        <div class="control-group">
+            <label>Filter by Type</label>
+            <select id="typeFilter">
+                <option value="all">All Types</option>
+            </select>
+        </div>
+        
+        <div class="control-group">
+            <label>View Options</label>
+            <button id="toggleOrphans">Hide Orphans</button>
+            <button id="toggleLabels">Hide Labels</button>
+            <button id="togglePhysics">Pause Physics</button>
+        </div>
+        
+        <div class="control-group">
+            <label>Layout</label>
+            <button id="resetView">Reset View</button>
+            <button id="centerGraph">Center Graph</button>
+            <button id="showProjectNodes">Show Project Nodes</button>
+        </div>
+    </div>
+    
+    <div id="stats"></div>
+    
+    <div id="details">
+        <h3 id="detailsTitle"></h3>
+        <div class="entity-type" id="detailsType"></div>
+        <div class="observations" id="detailsObservations"></div>
+        <div class="relations" id="detailsRelations"></div>
+    </div>
+    
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: #4a9eff;"></div>
+            <span>Normal Entity</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ff6b6b; border-style: dashed;"></div>
+            <span>Orphaned Entity</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #ffd700;"></div>
+            <span>Project Related</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: #00ff00;"></div>
+            <span>Selected</span>
+        </div>
+    </div>
+    
+    <svg id="graph"></svg>
+    <div id="tooltip"></div>
+    
+    <script>
+        // Global variables
+        let memoryData = null;
+        let simulation = null;
+        let svg = null;
+        let g = null;
+        let link = null;
+        let node = null;
+        let label = null;
+        let showOrphans = true;
+        let showLabels = true;
+        let physicsEnabled = true;
+        let selectedNode = null;
+        
+        // Color scale for entity types
+        const colorScale = d3.scaleOrdinal(d3.schemeSet3);
+        
+        // Initialize visualization
+        async function init() {
+            try {
+                // Load memory data
+                const response = await fetch('memory-data.json');
+                memoryData = await response.json();
+                
+                // Update stats
+                updateStats();
+                
+                // Populate type filter
+                populateTypeFilter();
+                
+                // Create visualization
+                createVisualization();
+                
+                // Setup event handlers
+                setupEventHandlers();
+                
+            } catch (error) {
+                console.error('Error loading memory data:', error);
+                document.getElementById('stats').innerHTML = `<span style="color: #ff6b6b;">Error loading memory data: ${error.message}</span>`;
+            }
+        }
+        
+        function updateStats() {
+            const stats = memoryData.analysis;
+            document.getElementById('stats').innerHTML = `
+                <strong>Memory Graph Statistics</strong><br>
+                Total Entities: ${stats.totalEntities}<br>
+                Total Relations: ${stats.totalRelations}<br>
+                Orphaned Entities: ${stats.orphanedEntities}<br>
+                Entity Types: ${stats.entityTypes.length}<br>
+                Relation Types: ${stats.relationTypes.length}
+            `;
+        }
+        
+        function populateTypeFilter() {
+            const typeFilter = document.getElementById('typeFilter');
+            const types = [...new Set(memoryData.entities.map(e => e.entityType))].sort();
+            
+            types.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                typeFilter.appendChild(option);
+            });
+        }
+        
+        function createVisualization() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            // Create SVG
+            svg = d3.select('#graph')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Create container group for zoom/pan
+            g = svg.append('g');
+            
+            // Add zoom behavior
+            const zoom = d3.zoom()
+                .scaleExtent([0.1, 10])
+                .on('zoom', (event) => {
+                    g.attr('transform', event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            // Prepare nodes and links
+            const nodes = memoryData.entities.map(d => ({
+                ...d,
+                id: d.name,
+                isOrphaned: memoryData.analysis.orphanedEntityNames.some(o => o.name === d.name),
+                isProjectRelated: d.name.toLowerCase().includes('entertainment') || 
+                                 d.name.toLowerCase().includes('rebellion') ||
+                                 d.name.toLowerCase().includes('alex') ||
+                                 d.name.toLowerCase().includes('hackathon') ||
+                                 d.entityType.includes('demo_')
+            }));
+            
+            const links = memoryData.relations.map(d => ({
+                source: d.from,
+                target: d.to,
+                type: d.relationType
+            }));
+            
+            // Create force simulation
+            simulation = d3.forceSimulation(nodes)
+                .force('link', d3.forceLink(links).id(d => d.id).distance(80))
+                .force('charge', d3.forceManyBody().strength(-200))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(30));
+            
+            // Create links
+            link = g.append('g')
+                .selectAll('line')
+                .data(links)
+                .enter().append('line')
+                .attr('class', 'link');
+            
+            // Create nodes
+            node = g.append('g')
+                .selectAll('circle')
+                .data(nodes)
+                .enter().append('circle')
+                .attr('class', d => {
+                    let classes = 'node';
+                    if (d.isOrphaned) classes += ' orphaned';
+                    if (d.isProjectRelated) classes += ' project-related';
+                    return classes;
+                })
+                .attr('r', d => {
+                    if (d.isProjectRelated) return 8;
+                    if (d.isOrphaned) return 5;
+                    return 6;
+                })
+                .attr('fill', d => colorScale(d.entityType))
+                .on('click', selectNode)
+                .on('mouseover', showTooltip)
+                .on('mouseout', hideTooltip)
+                .call(d3.drag()
+                    .on('start', dragStarted)
+                    .on('drag', dragged)
+                    .on('end', dragEnded));
+            
+            // Create labels
+            label = g.append('g')
+                .selectAll('text')
+                .data(nodes)
+                .enter().append('text')
+                .attr('class', d => d.isProjectRelated ? 'node-label important' : 'node-label')
+                .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
+            
+            // Update positions on tick
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => d.source.x)
+                    .attr('y1', d => d.source.y)
+                    .attr('x2', d => d.target.x)
+                    .attr('y2', d => d.target.y);
+                
+                node
+                    .attr('cx', d => d.x)
+                    .attr('cy', d => d.y);
+                
+                label
+                    .attr('x', d => d.x)
+                    .attr('y', d => d.y + 20);
+            });
+        }
+        
+        function selectNode(event, d) {
+            // Update selected state
+            selectedNode = d;
+            
+            // Update visual selection
+            node.classed('selected', n => n.id === d.id);
+            
+            // Highlight connected links
+            link.classed('highlighted', l => 
+                l.source.id === d.id || l.target.id === d.id
+            );
+            
+            // Show details panel
+            showDetails(d);
+        }
+        
+        function showDetails(d) {
+            document.getElementById('details').style.display = 'block';
+            document.getElementById('detailsTitle').textContent = d.name;
+            document.getElementById('detailsType').textContent = `Type: ${d.entityType}`;
+            
+            // Show observations
+            const obsContainer = document.getElementById('detailsObservations');
+            if (d.observations && d.observations.length > 0) {
+                obsContainer.innerHTML = '<h4>Observations</h4>' + 
+                    d.observations.map(obs => `<div class="observation">${obs}</div>`).join('');
+            } else {
+                obsContainer.innerHTML = '<h4>Observations</h4><div class="observation">No observations</div>';
+            }
+            
+            // Show relations
+            const relContainer = document.getElementById('detailsRelations');
+            const outgoing = memoryData.relations.filter(r => r.from === d.name);
+            const incoming = memoryData.relations.filter(r => r.to === d.name);
+            
+            let relHTML = '<h4>Relations</h4>';
+            
+            if (outgoing.length > 0) {
+                relHTML += '<strong>Outgoing:</strong>';
+                outgoing.forEach(r => {
+                    relHTML += `<div class="relation" onclick="focusNode('${r.to}')">→ ${r.relationType} → ${r.to}</div>`;
+                });
+            }
+            
+            if (incoming.length > 0) {
+                relHTML += '<strong>Incoming:</strong>';
+                incoming.forEach(r => {
+                    relHTML += `<div class="relation" onclick="focusNode('${r.from}')">${r.from} → ${r.relationType} →</div>`;
+                });
+            }
+            
+            if (outgoing.length === 0 && incoming.length === 0) {
+                relHTML += '<div class="observation">No relations (orphaned)</div>';
+            }
+            
+            relContainer.innerHTML = relHTML;
+        }
+        
+        function focusNode(nodeName) {
+            const targetNode = simulation.nodes().find(n => n.id === nodeName);
+            if (targetNode) {
+                selectNode(null, targetNode);
+                
+                // Pan to node
+                const transform = d3.zoomIdentity
+                    .translate(window.innerWidth / 2 - targetNode.x, window.innerHeight / 2 - targetNode.y)
+                    .scale(1.5);
+                
+                svg.transition().duration(750).call(
+                    d3.zoom().transform,
+                    transform
+                );
+            }
+        }
+        
+        function showTooltip(event, d) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'block';
+            tooltip.innerHTML = `<strong>${d.name}</strong><br>Type: ${d.entityType}`;
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY + 10) + 'px';
+        }
+        
+        function hideTooltip() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+        
+        function dragStarted(event, d) {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        
+        function dragged(event, d) {
+            d.fx = event.x;
+            d.fy = event.y;
+        }
+        
+        function dragEnded(event, d) {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null;
+            d.fy = null;
+        }
+        
+        function setupEventHandlers() {
+            // Search functionality
+            document.getElementById('search').addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                
+                node.style('opacity', d => {
+                    if (!searchTerm) return 1;
+                    return d.name.toLowerCase().includes(searchTerm) ||
+                           d.entityType.toLowerCase().includes(searchTerm) ||
+                           (d.observations && d.observations.some(o => o.toLowerCase().includes(searchTerm)))
+                           ? 1 : 0.2;
+                });
+                
+                label.style('opacity', d => {
+                    if (!searchTerm) return 1;
+                    return d.name.toLowerCase().includes(searchTerm) ? 1 : 0.2;
+                });
+            });
+            
+            // Type filter
+            document.getElementById('typeFilter').addEventListener('change', (e) => {
+                const selectedType = e.target.value;
+                
+                node.style('display', d => {
+                    if (selectedType === 'all') return 'block';
+                    return d.entityType === selectedType ? 'block' : 'none';
+                });
+                
+                label.style('display', d => {
+                    if (selectedType === 'all') return 'block';
+                    return d.entityType === selectedType ? 'block' : 'none';
+                });
+            });
+            
+            // Toggle orphans
+            document.getElementById('toggleOrphans').addEventListener('click', (e) => {
+                showOrphans = !showOrphans;
+                e.target.textContent = showOrphans ? 'Hide Orphans' : 'Show Orphans';
+                
+                node.style('display', d => {
+                    if (!showOrphans && d.isOrphaned) return 'none';
+                    return 'block';
+                });
+                
+                label.style('display', d => {
+                    if (!showOrphans && d.isOrphaned) return 'none';
+                    return 'block';
+                });
+            });
+            
+            // Toggle labels
+            document.getElementById('toggleLabels').addEventListener('click', (e) => {
+                showLabels = !showLabels;
+                e.target.textContent = showLabels ? 'Hide Labels' : 'Show Labels';
+                label.style('display', showLabels ? 'block' : 'none');
+            });
+            
+            // Toggle physics
+            document.getElementById('togglePhysics').addEventListener('click', (e) => {
+                physicsEnabled = !physicsEnabled;
+                e.target.textContent = physicsEnabled ? 'Pause Physics' : 'Resume Physics';
+                
+                if (physicsEnabled) {
+                    simulation.alpha(0.3).restart();
+                } else {
+                    simulation.stop();
+                }
+            });
+            
+            // Reset view
+            document.getElementById('resetView').addEventListener('click', () => {
+                svg.transition().duration(750).call(
+                    d3.zoom().transform,
+                    d3.zoomIdentity
+                );
+            });
+            
+            // Center graph
+            document.getElementById('centerGraph').addEventListener('click', () => {
+                const bounds = g.node().getBBox();
+                const fullWidth = window.innerWidth;
+                const fullHeight = window.innerHeight;
+                const width = bounds.width;
+                const height = bounds.height;
+                const midX = bounds.x + width / 2;
+                const midY = bounds.y + height / 2;
+                
+                const scale = 0.8 / Math.max(width / fullWidth, height / fullHeight);
+                const transform = d3.zoomIdentity
+                    .translate(fullWidth / 2 - midX * scale, fullHeight / 2 - midY * scale)
+                    .scale(scale);
+                
+                svg.transition().duration(750).call(
+                    d3.zoom().transform,
+                    transform
+                );
+            });
+            
+            // Show project nodes
+            document.getElementById('showProjectNodes').addEventListener('click', () => {
+                // Hide all non-project nodes temporarily
+                node.style('opacity', d => d.isProjectRelated ? 1 : 0.1);
+                label.style('opacity', d => d.isProjectRelated ? 1 : 0.1);
+                link.style('opacity', 0.1);
+                
+                // Reset after 3 seconds
+                setTimeout(() => {
+                    node.style('opacity', 1);
+                    label.style('opacity', 1);
+                    link.style('opacity', 0.6);
+                }, 3000);
+            });
+        }
+        
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>
