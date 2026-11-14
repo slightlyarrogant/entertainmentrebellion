@@ -100,6 +100,7 @@ table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-v
 .log { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
 .banner { background: var(--panel); border: 1px solid var(--accent); border-radius: 10px; padding: 10px 14px; font-weight: 500;
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.banner select, .banner input { font: inherit; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
 .banner button { padding: 8px 16px; border-radius: 8px; border: 0; background: var(--felt); color: var(--felt-fg); font-weight: 700; }
 #err { color: var(--vul); font-weight: 500; min-height: 1.4em; }
 </style>
@@ -107,6 +108,13 @@ table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-v
 <body>
 <div class="wrap">
   <header><h1>Stolik brydżowy</h1><div class="meta" id="meta"></div></header>
+  <form class="banner" id="sit" hidden>
+    <span>Usiądź przy stole:</span>
+    <select id="sit-seat" aria-label="Miejsce"><option value="S">South</option><option value="N">North</option><option value="W">West</option><option value="E">East</option></select>
+    <input id="sit-pass" type="password" placeholder="hasło stołu" aria-label="Hasło stołu" autocomplete="off">
+    <button type="submit">Siadam</button>
+    <span id="sit-note" class="note"></span>
+  </form>
   <div class="banner" id="banner" hidden><span id="banner-text"></span><button id="deal" type="button">Rozdaj</button></div>
   <div class="cols">
     <div>
@@ -131,7 +139,10 @@ table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-v
 <script>
 const SEATS = ["N", "E", "S", "W"], SUITS = ["S", "H", "D", "C"], STRAINS = ["C", "D", "H", "S", "NT"];
 const G = { S: "♠", H: "♥", D: "♦", C: "♣", NT: "BA" };
-const NAME = { N: "Claude", S: "Ty", W: "West", E: "East" };
+const NAMES = { N: "North", S: "South", W: "West", E: "East" };
+let ME = "S", NAME = NAMES;
+let token = new URLSearchParams(location.search).get("k");
+try { token = token || localStorage.getItem("brydz-zeton"); } catch (e) {}
 const RANK = r => ({ T: "10", Q: "D", J: "W" }[r] || r);
 const isRed = s => s === "H" || s === "D";
 const side = s => (s === "N" || s === "S") ? "ns" : "ew";
@@ -143,7 +154,7 @@ async function act(path, body) {
   if (sending) return;
   sending = true; $("err").textContent = "";
   try {
-    const r = await fetch("api/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    const r = await fetch("api/" + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...(body || {}), k: token }) });
     const j = await r.json();
     if (!j.ok) $("err").textContent = j.error || "Nie udało się wykonać ruchu.";
   } catch (e) { $("err").textContent = "Stół nie odpowiada. Spróbuj jeszcze raz."; }
@@ -182,6 +193,8 @@ function rows(cards) {
 
 function render() {
   if (!st || st.phase === "none") { $("status").textContent = "Gra jeszcze nie założona."; return; }
+  ME = st.seat; NAME = { ...NAMES, [ME]: "Ty" };
+  const us = side(ME), them = us === "ns" ? "ew" : "ns";
   const c = st.contract, playing = st.phase === "play";
   const meta = $("meta"); meta.replaceChildren();
   const add = (label, val) => { const s = el("span"); s.append(label + " ", el("b", "", val)); meta.append(s); };
@@ -192,11 +205,11 @@ function render() {
   const over = st.phase === "done" || st.phase === "idle";
   $("banner").hidden = !over;
   if (st.phase === "done") {
-    $("banner-text").textContent = "Koniec rozdania. " + st.result.text + ". Zapis: My +" + (st.result.ns || 0) + ", Oni +" + (st.result.ew || 0) + ".";
+    $("banner-text").textContent = "Koniec rozdania. " + st.result.text + ". Zapis: My +" + (st.result[us] || 0) + ", Oni +" + (st.result[them] || 0) + ".";
     $("deal").textContent = st.score.done ? "Nowy rober" : "Następne rozdanie";
   } else if (st.phase === "idle") { $("banner-text").textContent = "Karty nie są rozdane."; $("deal").textContent = "Rozdaj"; }
 
-  const mine = st.actor === "S";
+  const mine = st.actor === ME;
   for (const s of SEATS) {
     const box = $("seat-" + s); box.replaceChildren();
     box.classList.toggle("turn", st.turn === s);
@@ -210,8 +223,8 @@ function render() {
     box.append(who);
     if (st.phase === "idle") continue;
     const legal = playing && mine && st.turn === s ? st.legalCards : null;
-    if (st.hands) box.append(s === "S" ? chips(st.hands[s]) : rows(st.hands[s]));
-    else if (s === "S") box.append(chips(st.hand, legal || (playing ? [] : null)));
+    if (st.hands) box.append(s === ME ? chips(st.hands[s]) : rows(st.hands[s]));
+    else if (s === ME) box.append(chips(st.hand, legal || (playing ? [] : null)));
     else if (st.dummy === s && st.dummyHand) box.append(legal ? chips(st.dummyHand, legal) : rows(st.dummyHand));
     else box.append(el("div", "hidden-hand", st.counts[s] + " kart, zakryte"));
   }
@@ -228,8 +241,8 @@ function render() {
 
   const tally = $("tally"); tally.replaceChildren();
   if (c) {
-    (st.trickWinners || (st.history || []).map(t => t.winner)).forEach(w => tally.append(el("span", "tk " + (side(w) === "ns" ? "won" : "lost"))));
-    tally.append(el("b", "", "My " + st.won.ns + " : " + st.won.ew + " Oni"));
+    (st.trickWinners || (st.history || []).map(t => t.winner)).forEach(w => tally.append(el("span", "tk " + (side(w) === us ? "won" : "lost"))));
+    tally.append(el("b", "", "My " + st.won[us] + " : " + st.won[them] + " Oni"));
   }
 
   const au = $("auction");
@@ -256,23 +269,34 @@ function render() {
 
   const sc = st.score, sh = el("div", "sheet"), entry = e => { const d = el("div", "e"); d.append(el("span", "", e.label), String(e.pts)); return d; };
   const cell = (cls, items) => { const d = el("div", cls); items.forEach(e => d.append(entry(e))); return d; };
-  sh.append(el("div", "hd l", "My"), el("div", "hd", "Oni"), cell("above l", sc.above.ns), cell("above", sc.above.ew));
-  sc.games.forEach((g, i) => sh.append(cell((i ? "game" : "theline") + " l", g.ns), cell(i ? "game" : "theline", g.ew)));
-  sh.append(el("div", "tot l", String(sc.totals.ns)), el("div", "tot", String(sc.totals.ew)));
-  const note = el("p", "note", "Partie: My " + sc.won.ns + " · Oni " + sc.won.ew + (st.rubbers.length ? ". Skończone robry: " + st.rubbers.map(r => r.ns + ":" + r.ew).join(", ") : ""));
+  sh.append(el("div", "hd l", "My"), el("div", "hd", "Oni"), cell("above l", sc.above[us]), cell("above", sc.above[them]));
+  sc.games.forEach((g, i) => sh.append(cell((i ? "game" : "theline") + " l", g[us]), cell(i ? "game" : "theline", g[them])));
+  sh.append(el("div", "tot l", String(sc.totals[us])), el("div", "tot", String(sc.totals[them])));
+  const note = el("p", "note", "Partie: My " + sc.won[us] + " · Oni " + sc.won[them] + (st.rubbers.length ? ". Skończone robry: " + st.rubbers.map(r => r[us] + ":" + r[them]).join(", ") : ""));
   $("sheet").replaceChildren(sh, note);
 
   if (st.log.length) $("log").replaceChildren(...st.log.slice(-12).map(m => { const d = el("div"); d.append(el("b", "", NAME[m.seat] + ": "), m.text); return d; }));
 
-  $("status").textContent = st.legalCalls ? "Twoja odzywka." : (playing && mine) ? "Twój ruch: kliknij kartę" + (st.turn === "N" ? " dziadka." : ".")
+  $("status").textContent = st.legalCalls ? "Twoja odzywka." : (playing && mine) ? "Twój ruch: kliknij kartę" + (st.turn !== ME ? " dziadka." : ".")
     : over ? "" : "Czekamy na: " + NAME[st.actor] + ".";
 }
 
 $("deal").onclick = () => act("deal");
+$("sit").onsubmit = async ev => {
+  ev.preventDefault();
+  const r = await fetch("api/sit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seat: $("sit-seat").value, password: $("sit-pass").value }) });
+  const j = await r.json();
+  if (!j.ok) { $("sit-note").textContent = j.error; return; }
+  token = j.result;
+  try { localStorage.setItem("brydz-zeton", token); } catch (e) {}
+  $("sit").hidden = true;
+};
 (async function poll() {
   for (;;) {
+    if (!token) { $("sit").hidden = false; $("status").textContent = "Nie siedzisz jeszcze przy stole."; await new Promise(r => setTimeout(r, 800)); continue; }
     try {
-      const r = await fetch("api/state?v=" + (st ? st.v : -1));
+      const r = await fetch("api/state?v=" + (st ? st.v : -1) + "&k=" + encodeURIComponent(token));
+      if (r.status === 401) { token = null; st = null; try { localStorage.removeItem("brydz-zeton"); } catch (e) {} continue; }
       st = await r.json(); render();
     } catch (e) { $("status").textContent = "Brak połączenia ze stołem, próbuję ponownie…"; await new Promise(r => setTimeout(r, 2000)); }
   }

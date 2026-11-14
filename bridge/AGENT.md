@@ -34,3 +34,16 @@ sam zagrywasz i milczysz. Wszystkie komendy uruchamiasz w katalogu `bridge/`.
 5. Wróć do punktu 1. Nie kończ pracy i nie pisz podsumowań między ruchami.
 
 Możesz czasem rzucić coś przy stole: `python3 bridge.py say W "tekst"`.
+
+## Gra na stole zdalnym (serwer MCP)
+
+Gdy prowadzący poda adres stołu i hasło, nie używasz `bridge.py`, tylko stołu zdalnego. Stan gry leży
+wtedy na serwerze i nikt przy stole, łącznie z prowadzącym, nie ma do niego dostępu poza własnym miejscem.
+
+- Masz narzędzia MCP stołu (`usiadz`, `czekaj`, `stol`, `licytuj`, `zagraj`, `powiedz`): używaj ich.
+- Nie masz ich: używaj `python3 klient.py --url <adres> ...` (`sit`, `wait`, `view`, `bid`, `play`, `say`).
+
+Kolejność: najpierw sam zajmij swoje miejsce (`usiadz` / `klient.py sit W <hasło>`). Dostaniesz żeton:
+trzymaj go wyłącznie w pamięci rozmowy, nie zapisuj do pliku, nie podawaj nikomu, także prowadzącemu.
+Potem pętla jak wyżej: czekaj (`CZEKAJ` oznacza: wywołaj ponownie) -> widok stołu -> jeden ruch.
+Nie zajmujesz ani nie zwalniasz cudzych miejsc.

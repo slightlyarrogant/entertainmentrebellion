@@ -1,0 +1,16 @@
+[Unit]
+Description=Stolik brydzowy (MCP + strona)
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/brydz/bridge
+Environment=PORT=8765
+Environment=HOST=127.0.0.1
+Environment=BRIDGE_STATE=/var/lib/brydz
+EnvironmentFile=/etc/brydz.env
+ExecStart=/opt/brydz/venv/bin/python mcp_server.py
+Restart=on-failure
+User=brydz
+
+[Install]
+WantedBy=multi-user.target
