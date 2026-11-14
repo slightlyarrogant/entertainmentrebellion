@@ -15,14 +15,17 @@ Komendy:
   play <actor> <card>   np. SA, H10, DQ, C2  (kolor S/H/D/C + figura A K Q J T 9..2)
   say <seat> <tekst>    rozmowa przy stole (jawna)
   undo                  cofa ostatni ruch
+  wait <seat> [--timeout s]  czeka, aż ruch będzie należał do gracza (RUCH / CZEKAJ / KONIEC_ROBRA)
 """
 import base64
+import fcntl
 import hashlib
 import json
 import os
 import secrets
 import shutil
 import sys
+import time
 import zlib
 
 DIR = os.environ.get("BRIDGE_STATE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "state")
@@ -94,9 +97,17 @@ def save(st, backup=True):
     os.makedirs(DIR, exist_ok=True)
     if backup and os.path.exists(STATE):
         shutil.copy(STATE, PREV)
-    with open(STATE, "wb") as f:
+    with open(STATE + ".tmp", "wb") as f:
         f.write(base64.b64encode(zlib.compress(json.dumps(st).encode())))
+    os.replace(STATE + ".tmp", STATE)
     export(st)
+
+
+def lock():
+    os.makedirs(DIR, exist_ok=True)
+    f = open(os.path.join(DIR, "lock"), "w")
+    fcntl.flock(f, fcntl.LOCK_EX)
+    return f
 
 
 def new_score():
@@ -135,7 +146,7 @@ def totals(score):
     return t
 
 
-def export(st):
+def public(st):
     c = st["contract"]
     dummy = partner(c["declarer"]) if c else None
     exposed = bool(c) and (len(st["tricks"]) > 0 or len(st["trick"]) > 0)
@@ -157,6 +168,33 @@ def export(st):
         "rubbers": st["rubbers"],
         "log": st["log"][-30:],
     }
+    return pub
+
+
+def actor_of(st):
+    if st["phase"] == "auction":
+        return st["turn"]
+    if st["phase"] == "play":
+        return controller(st, st["turn"])
+    return None
+
+
+def seat_json(st, seat):
+    """Obraz stołu dla jednego gracza: to co jawne plus jego własna ręka i dozwolone ruchy."""
+    pub = public(st)
+    del pub["encS"]
+    act = actor_of(st)
+    pub.update(seat=seat, actor=act, hand=st["hands"].get(seat, []),
+               trickWinners=[t["winner"] for t in st["tricks"]], legalCalls=None, legalCards=None)
+    if act == seat and st["phase"] == "auction":
+        pub["legalCalls"] = legal_calls(st, seat)
+    if act == seat and st["phase"] == "play":
+        pub["legalCards"] = legal_cards(st, st["turn"])
+    return pub
+
+
+def export(st):
+    pub = public(st)
     with open(PUBLIC, "w") as f:
         json.dump(pub, f)
     with open(KEY, "w") as f:
@@ -443,12 +481,36 @@ def cmd_status(st):
     return f"faza={st['phase']} deal={st['deal']}" + (f" wynik=\"{st['result']['text']}\"" if st["result"] else "")
 
 
+def cmd_wait(args):
+    """Czeka, aż ruch będzie należał do któregoś z podanych graczy (albo rober się skończy)."""
+    seats = [a.upper() for a in args if a.upper() in list(SEATS)]
+    timeout = float(args[args.index("--timeout") + 1]) if "--timeout" in args else 570
+    end = time.time() + timeout
+    while True:
+        st = load()
+        if st:
+            a = actor_of(st)
+            if a in seats:
+                print(f"RUCH {a}")
+                return 0
+            if st["score"]["done"] and st["phase"] == "done":
+                print("KONIEC_ROBRA")
+                return 0
+        if time.time() > end:
+            print("CZEKAJ")
+            return 0
+        time.sleep(0.5)
+
+
 def main(argv):
     if not argv:
         print(__doc__)
         return 0
     cmd, args = argv[0], argv[1:]
     seat = args[0].upper() if args else None
+    if cmd == "wait":
+        return cmd_wait(args)
+    lk = lock()
     try:
         if cmd == "new-rubber":
             old = load()
@@ -496,6 +558,8 @@ def main(argv):
     except Err as e:
         print(f"BŁĄD: {e}")
         return 1
+    finally:
+        lk.close()
 
 
 if __name__ == "__main__":
