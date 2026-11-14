@@ -1,4 +1,4 @@
-# System pary NS (Claude N, człowiek S) - propozycja do uzgodnienia
+# System pary NS (Claude N, człowiek S)
 
 Naturalny, z silnym 2♣. Punkty: A=4, K=3, D=2, W=1.
 
@@ -8,7 +8,8 @@ Naturalny, z silnym 2♣. Punkty: A=4, K=3, D=2, W=1.
 - **1♥ / 1♠**: naturalne, 12-21 PC, od 5 kart.
 - **1BA**: 15-17 PC, skład zrównoważony.
 - **2♣**: silne, sztuczne, forsujące do końcówki (od 22 PC albo 9+ lew). Odpowiedź 2♦ = wyczekująca.
-- **2♦ / 2♥ / 2♠**: DO USTALENIA - silne dwa naturalne (forsujące) albo słabe dwa (6 kart, 6-10 PC).
+- **2♦ / 2♥ / 2♠**: silne dwa, naturalne, forsujące na jedno okrążenie (dobry kolor 5+, 8+ lew, zwykle 18-21 PC).
+  Odpowiedź 2BA = negat (0-7 PC), inne odzywki naturalne i pozytywne.
 - **2BA**: 20-21 PC, skład zrównoważony.
 - **3 w kolor**: blok, 7 kart.
 
@@ -17,7 +18,7 @@ Naturalny, z silnym 2♣. Punkty: A=4, K=3, D=2, W=1.
 - Nowy kolor na poziomie 1: od 6 PC, forsuje na jedno okrążenie. Nowy kolor na poziomie 2: od 10 PC.
 - Podniesienie koloru partnera: pojedyncze 6-9, ze skokiem 10-12 (inwit), do końcówki z ręką na końcówkę.
 - 1BA na otwarcie w kolor: 6-9 PC, bez fitu, nie forsuje.
-- Po 1BA: **2♣ Stayman** (pytanie o starsze czwórki). 2♦/2♥/2♠ - DO USTALENIA: naturalne do pasa albo transfery.
+- Po 1BA: **2♣ Stayman** (pytanie o starsze czwórki). 2♦/2♥/2♠ = negat: słaba ręka z 5+ kartami, do pasa (bez transferów). 2BA = inwit, 3 w kolor = forsing do końcówki.
 - **4BA Blackwood**: pytanie o asy. Odpowiedzi: 5♣ = 0 lub 4, 5♦ = 1, 5♥ = 2, 5♠ = 3. Potem 5BA pyta o króle.
 
 ## Licytacja w obronie
