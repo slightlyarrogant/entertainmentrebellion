@@ -7,7 +7,7 @@
   --bg: #e9ece6; --panel: #f7f8f4; --fg: #1c241f; --muted: #5f6b63; --line: #c9d0c6;
   --felt: #1f5a44; --felt-deep: #17483a; --felt-fg: #eef5ef; --felt-muted: #a9c8b8;
   --card: #fbfaf5; --card-ink: #16181a; --card-red: #c0272d; --card-edge: #d8d5c8;
-  --accent: #b9791a; --vul: #c0272d; --red-ink: #b3242a;
+  --accent: #b9791a; --vul: #c0272d; --red-ink: #b3242a; --back: #7c2a34;
   --display: "Bricolage Grotesque", "DM Sans", system-ui, sans-serif;
   --body: "DM Sans", system-ui, sans-serif;
   --mono: "DM Mono", ui-monospace, Menlo, monospace;
@@ -16,12 +16,12 @@
   --bg: #121614; --panel: #1b211e; --fg: #e6ece7; --muted: #94a199; --line: #323b36;
   --felt: #1b4c3a; --felt-deep: #123529; --felt-fg: #eef5ef; --felt-muted: #9dbdad;
   --card: #f4f2ea; --card-ink: #16181a; --card-red: #c0272d; --card-edge: #bdb9a8;
-  --accent: #e0a23c; --vul: #e2575c; --red-ink: #ef7479; color-scheme: dark } }
+  --accent: #e0a23c; --vul: #e2575c; --red-ink: #ef7479; --back: #8a3440; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #121614; --panel: #1b211e; --fg: #e6ece7; --muted: #94a199; --line: #323b36;
   --felt: #1b4c3a; --felt-deep: #123529; --felt-fg: #eef5ef; --felt-muted: #9dbdad;
   --card: #f4f2ea; --card-ink: #16181a; --card-red: #c0272d; --card-edge: #bdb9a8;
-  --accent: #e0a23c; --vul: #e2575c; --red-ink: #ef7479; color-scheme: dark }
+  --accent: #e0a23c; --vul: #e2575c; --red-ink: #ef7479; --back: #8a3440; color-scheme: dark }
 
 body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45;
   padding-block: 20px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
@@ -38,7 +38,13 @@ h1 { font-family: var(--display); font-size: 26px; font-weight: 700; margin: 0; 
 .felt { background: radial-gradient(ellipse at 50% 40%, var(--felt), var(--felt-deep)); color: var(--felt-fg);
   border-radius: 14px; padding: 14px; display: grid; gap: 10px;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
-  grid-template-areas: ". n ." "w mid e" "s s s"; }
+  grid-template-areas: ". n ." "w mid e" "s s s" "tally tally tally"; }
+.tally { grid-area: tally; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; min-height: 30px; }
+.tk { background: var(--back); border: 1px solid var(--felt-muted); border-radius: 3px; flex: none; }
+.tk.won { width: 18px; height: 28px; }
+.tk.lost { width: 28px; height: 18px; }
+.tally b { font-family: var(--display); margin-left: 8px; }
+.mid.old .pc { opacity: .55; }
 .seat { min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; border-radius: 10px;
   border: 1px solid transparent; }
 .seat.turn { border-color: var(--accent); background: rgba(0,0,0,.16); }
@@ -110,7 +116,7 @@ table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-v
       <div class="mid" id="mid"></div>
       <div class="seat seat-e" id="seat-E"></div>
       <div class="seat seat-s" id="seat-S"></div>
-      <div class="last" id="last"></div>
+      <div class="tally" id="tally"></div>
     </div>
     <div class="side">
       <section class="box"><h2>Licytacja</h2><div id="auction" class="dim">Czekam na rozdanie.</div></section>
@@ -248,19 +254,21 @@ function render() {
     else box.append(el("div", "hidden-hand", st.counts[s] + " kart, zakryte"));
   }
 
-  // środek: bieżąca lewa
+  // środek: bieżąca lewa, a tuż po jej zamknięciu jeszcze przez chwilę poprzednia
   const mid = $("mid"); mid.replaceChildren();
   const pos = { N: "tn", E: "te", S: "ts", W: "tw" };
-  (st.trick || []).forEach(p => { const c = cardChip(p.card); c.classList.add(pos[p.seat]); mid.append(c); });
+  const showLast = st.phase === "play" && !(st.trick || []).length && st.lastTrick;
+  mid.classList.toggle("old", !!showLast);
+  (showLast ? st.lastTrick.cards : (st.trick || [])).forEach(p => { const c = cardChip(p.card); c.classList.add(pos[p.seat]); mid.append(c); });
   const ctr = el("div", "ctr");
-  if (st.phase === "play") ctr.append(el("strong", "", st.won.ns + " : " + st.won.ew), "My : Oni");
+  if (showLast) ctr.append("wziął " + NAME[st.lastTrick.winner]);
   else if (st.phase === "auction") ctr.append("licytacja");
   mid.append(ctr);
-  const last = $("last"); last.replaceChildren();
-  if (st.lastTrick && st.phase === "play") {
-    last.append("Poprzednia lewa: ");
-    st.lastTrick.cards.forEach(p => last.append(p.seat + " " + G[p.card[0]] + RANK(p.card[1]) + "  "));
-    last.append("→ wziął " + NAME[st.lastTrick.winner] + " (" + st.lastTrick.winner + ")");
+  // lewy odłożone jak przy stole: wzięta pionowo, oddana poziomo
+  const tally = $("tally"); tally.replaceChildren();
+  if (st.contract) {
+    (st.trickWinners || []).forEach(w => tally.append(el("span", "tk " + (side(w) === "ns" ? "won" : "lost"))));
+    tally.append(el("b", "", "My " + st.won.ns + " : " + st.won.ew + " Oni"));
   }
 
   // licytacja
@@ -312,7 +320,7 @@ async function start() {
   const fail = e => { clearTimeout(timer); status.textContent = "Połączenie ze stołem zerwane (" + (e && e.code) + "). Odśwież stronę."; };
   db.doc("game/key").onSnapshot(s => { if (s.exists) { secret = s.data().secret; render(); } }, fail);
   db.doc("game/state").onSnapshot(s => {
-    if (!s.metadata.fromCache) { clearTimeout(timer); status.textContent = "Stół odświeża się sam po każdym ruchu. Odzywki i zagrania podajesz Claude'owi w rozmowie."; }
+    if (!s.metadata.fromCache) { clearTimeout(timer); status.textContent = "Stół odświeża się sam, kilka sekund po każdym ruchu. Odzywki i zagrania podajesz Claude'owi w rozmowie."; }
     if (s.exists) { state = s.data(); render(); }
     else status.textContent = "Stół jest pusty. Claude jeszcze nie rozdał kart.";
   }, fail);

@@ -159,6 +159,7 @@ def public(st):
         "trick": st["trick"],
         "lastTrick": st["tricks"][-1] if st["tricks"] else None,
         "won": st["won"],
+        "trickWinners": [t["winner"] for t in st["tricks"]],
         "counts": {s: len(st["hands"].get(s, [])) for s in SEATS},
         "encS": encrypt(st["secret"], st["v"], json.dumps(st["hands"].get("S", []))),
         "result": st["result"],
@@ -185,7 +186,7 @@ def seat_json(st, seat):
     del pub["encS"]
     act = actor_of(st)
     pub.update(seat=seat, actor=act, hand=st["hands"].get(seat, []),
-               trickWinners=[t["winner"] for t in st["tricks"]], legalCalls=None, legalCards=None)
+               legalCalls=None, legalCards=None)
     if act == seat and st["phase"] == "auction":
         pub["legalCalls"] = legal_calls(st, seat)
     if act == seat and st["phase"] == "play":
@@ -502,6 +503,26 @@ def cmd_wait(args):
         time.sleep(0.5)
 
 
+def cmd_wait_change(args):
+    """Czeka, aż stan stołu zmieni się względem wersji v i uspokoi; wypisuje nową wersję."""
+    seen = int(args[0]) if args else -1
+    end = time.time() + 570
+    while time.time() < end:
+        st = load()
+        if st and st["v"] != seen:
+            for _ in range(6):
+                time.sleep(0.7)
+                again = load()
+                if again["v"] == st["v"]:
+                    break
+                st = again
+            print(f"ZMIANA {st['v']}")
+            return 0
+        time.sleep(0.4)
+    print(f"CZEKAJ {seen}")
+    return 0
+
+
 def main(argv):
     if not argv:
         print(__doc__)
@@ -510,6 +531,8 @@ def main(argv):
     seat = args[0].upper() if args else None
     if cmd == "wait":
         return cmd_wait(args)
+    if cmd == "wait-change":
+        return cmd_wait_change(args)
     lk = lock()
     try:
         if cmd == "new-rubber":
