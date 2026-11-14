@@ -516,7 +516,16 @@ def cmd_wait_change(args):
                 if again["v"] == st["v"]:
                     break
                 st = again
-            print(f"ZMIANA {st['v']}")
+            # migawka pod własną nazwą: plik, którego nikt już nie nadpisze w trakcie wysyłki
+            snap_dir = os.path.join(DIR, "push")
+            os.makedirs(snap_dir, exist_ok=True)
+            for old in os.listdir(snap_dir):
+                if os.path.getmtime(os.path.join(snap_dir, old)) < time.time() - 120:
+                    os.remove(os.path.join(snap_dir, old))
+            snap = os.path.join(snap_dir, f"stol-{st['v']}.json")
+            with open(snap, "w") as f:
+                json.dump(public(st), f)
+            print(f"ZMIANA {st['v']} {snap}")
             return 0
         time.sleep(0.4)
     print(f"CZEKAJ {seen}")
