@@ -11,6 +11,17 @@ EnvironmentFile=/etc/brydz.env
 ExecStart=/opt/brydz/venv/bin/python mcp_server.py
 Restart=on-failure
 User=brydz
+# Izolacja: usługa widzi tylko własny katalog stanu i nie może podnieść uprawnień.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/brydz
+InaccessiblePaths=-/srv -/root -/home
 
 [Install]
 WantedBy=multi-user.target
