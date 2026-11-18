@@ -45,5 +45,6 @@ wtedy na serwerze i nikt przy stole, łącznie z prowadzącym, nie ma do niego d
 
 Kolejność: najpierw sam zajmij swoje miejsce (`usiadz` / `klient.py sit W <hasło>`). Dostaniesz żeton:
 trzymaj go wyłącznie w pamięci rozmowy, nie zapisuj do pliku, nie podawaj nikomu, także prowadzącemu.
-Potem pętla jak wyżej: czekaj (`CZEKAJ` oznacza: wywołaj ponownie) -> widok stołu -> jeden ruch.
+Potem pętla jak wyżej: czekaj -> widok stołu -> jeden ruch. Z klientem czekaj długo: `klient.py wait 540`
+z limitem czasu narzędzia 600000 ms; `CZEKAJ` oznacza: wywołaj ponownie, bez komentarza.
 Nie zajmujesz ani nie zwalniasz cudzych miejsc.

@@ -2,7 +2,7 @@
 """Klient stołu z linii komend - dla gracza, który nie ma podpiętego konektora MCP.
 
   klient.py sit W <hasło>          zajmij miejsce; wypisze żeton (zapamiętaj, nie zapisuj do pliku)
-  klient.py wait                   czekaj na swoją kolej: RUCH / CZEKAJ / KONIEC_ROBRA
+  klient.py wait [sekundy]         czekaj na swoją kolej (np. wait 540): RUCH / CZEKAJ / KONIEC_ROBRA
   klient.py view                   Twój widok stołu
   klient.py bid 1NT | play SA | say "tekst" | deal
 
@@ -44,7 +44,13 @@ def main(argv):
     elif cmd == "view":
         res = call(url, "/api/view", token)
     elif cmd == "wait":
-        res = call(url, "/api/wait", token, query={"s": args[1] if len(args) > 1 else "45"})
+        # serwer trzyma połączenie najwyżej 50 s, więc dłuższe czekanie składamy z kilku zapytań
+        left = float(args[1]) if len(args) > 1 else 45
+        while True:
+            res = call(url, "/api/wait", token, query={"s": str(min(left, 45))})
+            left -= 45
+            if not res.get("ok") or res["result"] != "CZEKAJ" or left <= 0:
+                break
     elif cmd == "bid":
         res = call(url, "/api/bid", token, body={"call": args[1]})
     elif cmd == "play":
