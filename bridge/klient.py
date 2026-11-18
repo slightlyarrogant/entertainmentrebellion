@@ -11,6 +11,8 @@ Adres stołu: zmienna BRYDZ_URL (albo --url). Żeton: zmienna BRYDZ_ZETON (albo 
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -22,8 +24,16 @@ def call(url, path, token=None, body=None, query=None):
     full = url.rstrip("/") + path + ("?" + urllib.parse.urlencode(q) if q else "")
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(full, data=data, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=90) as r:
-        return json.load(r)
+    # połączenie przez tunel bywa zrywane; odczyty i czekanie można bezpiecznie ponawiać
+    last = None
+    for attempt in range(6 if body is None else 1):
+        try:
+            with urllib.request.urlopen(req, timeout=90) as r:
+                return json.load(r)
+        except (urllib.error.URLError, ConnectionError, TimeoutError) as e:
+            last = e
+            time.sleep(2 + 3 * attempt)
+    return {"ok": False, "error": f"Stół nie odpowiada ({last}). Spróbuj ponownie za chwilę."}
 
 
 def main(argv):
