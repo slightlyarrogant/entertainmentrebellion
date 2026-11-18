@@ -278,7 +278,9 @@ function render() {
   if (st.log.length) $("log").replaceChildren(...st.log.slice(-12).map(m => { const d = el("div"); d.append(el("b", "", NAME[m.seat] + ": "), m.text); return d; }));
 
   $("status").textContent = st.legalCalls ? "Twoja odzywka." : (playing && mine) ? "Twój ruch: kliknij kartę" + (st.turn !== ME ? " dziadka." : ".")
-    : over ? "" : "Czekamy na: " + NAME[st.actor] + ".";
+    : over ? "" : "Czekamy na: " + NAME[st.actor] + (st.actor !== st.turn ? " (zagrywa z dziadka)" : "") + ".";
+  $("status").style.fontWeight = over ? "" : "700";
+  $("status").style.fontSize = over ? "" : "16px";
 }
 
 $("deal").onclick = () => act("deal");

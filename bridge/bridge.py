@@ -579,6 +579,10 @@ def main(argv):
                 out = cmd_bid(st, seat, args[1])
             elif cmd == "play":
                 out = cmd_play(st, seat, args[1])
+                # karta wymuszona (jedyna dozwolona) schodzi sama - stół nie czeka na nikogo bez potrzeby
+                while st["phase"] == "play" and len(legal_cards(st, st["turn"])) == 1:
+                    hand = st["turn"]
+                    out += " [sama] " + cmd_play(st, controller(st, hand), legal_cards(st, hand)[0])
             else:
                 st["log"].append({"seat": seat, "text": " ".join(args[1:])[:300]})
                 out = "Powiedziane."
