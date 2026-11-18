@@ -579,8 +579,9 @@ def main(argv):
                 out = cmd_bid(st, seat, args[1])
             elif cmd == "play":
                 out = cmd_play(st, seat, args[1])
-                # karta wymuszona (jedyna dozwolona) schodzi sama - stół nie czeka na nikogo bez potrzeby
-                while st["phase"] == "play" and len(legal_cards(st, st["turn"])) == 1:
+                # ostatnia karta w ręce schodzi sama. Singiel w kolorze przy pełniejszej ręce już nie:
+                # natychmiastowe dołożenie zdradzałoby wszystkim rozkład tej ręki.
+                while st["phase"] == "play" and len(st["hands"][st["turn"]]) == 1:
                     hand = st["turn"]
                     out += " [sama] " + cmd_play(st, controller(st, hand), legal_cards(st, hand)[0])
             else:
