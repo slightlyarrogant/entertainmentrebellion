@@ -219,7 +219,7 @@ function render() {
     if (st.vul[side(s)]) who.append(el("span", "tag vul", "po partii"));
     if (c && c.declarer === s) who.append(el("span", "tag", "rozgrywa"));
     if (st.dummy === s) who.append(el("span", "tag", "dziadek"));
-    if (st.turn === s) who.append(el("span", "tag now", "na ruchu"));
+    if (st.turn === s) who.append(el("span", "tag now", s === ME && st.actor === ME ? "Twoja kolej" : st.phase === "auction" ? "licytuje" : "zagrywa"));
     box.append(who);
     if (st.phase === "idle") continue;
     const legal = playing && mine && st.turn === s ? st.legalCards : null;
